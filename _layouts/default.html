@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<title>angular.js - {{ page.title }}</title>
+	<link href="/stylesheets/screen.css" media="screen" rel="stylesheet" type="text/css" />
+	<link href="/stylesheets/jquery-ui-1.7.1.css" media="screen" rel="stylesheet" type="text/css" />
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="/scripts/underscore.js"></script>
+	<script type="text/javascript" src="/scripts/angular.js"></script>
+	<script type="text/javascript">
+    $(function(){
+      $(".angular").each(function(){
+        var scope = angular.compile(this);
+        scope.init();
+        scope.updateView();
+      });
+    });
+  </script>  
+</head>
+  <body>
+    <div id="content">
+      {{ content }}
+    </div>
+    <div id="footer">
+      get the source code on GitHub : <a href="http://github.com/angular/angular.js">angular/angular.js</a>
+    </div>
+  </body>
+</html>

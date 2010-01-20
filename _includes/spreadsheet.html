@@ -1,0 +1,30 @@
+<div id='angular-spreadsheet' class="angular">
+  <table ng-init="invoice={ items:[{name:'Widget', qty:50, cost:9.95}, {name:'Gadget', qty:25, cost:15.95}], taxRate:9, shipping:25.33}">
+    <tbody>
+      <tr><th>Qty</th><th>Description</th><th>Unit</th><th>Total</th></tr>
+      <tr ng-repeat="item in invoice.items">
+        <td><input name="item.qty" size="3"/></td>
+        <td><input name="item.name" size="15"/></td>
+        <td><input name="item.cost" size="5"/></td>
+        <td>{{ page.open }} item.total = item.qty * item.cost | currency {{ page.close }}</td>
+        <td><a href="" ng-action="invoice.items.$remove(item)">X</a></td>
+      </tr>    
+      <tr>
+        <td colspan="2"><a href="" ng-action="invoice.items.$add({qty:1})">add item</a></td>
+        <td>Sub:</td>
+        <td>{{ page.open }} invoice.sub = invoice.items.$sum("total")|currency {{ page.close }}</td>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td>&nbsp;</td>
+        <td>Tax:</td>
+        <td><input name="invoice.taxRate" size="2"/>%</td>
+        <td>{{ page.open }} invoice.tax = invoice.taxRate * invoice.sub / 100 | currency {{ page.close }}</td>
+        <td>&nbsp;</td>
+      </tr>
+      
+    </tbody>
+  </table>
+</div>
+
+<!-- {{ page.open }} c * d | currency {{ page.close }} -->
