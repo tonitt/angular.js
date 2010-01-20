@@ -24,4 +24,6 @@ Spreadsheet
 Database
 --------
 
+an [example](/database.html) connecting to http://www.getangular.com
+
 
