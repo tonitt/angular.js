@@ -12,11 +12,9 @@
 	<script type="text/javascript" src="/scripts/angular.js"></script>
 	<script type="text/javascript">
     $(function(){
-      $(".angular").each(function(){
-        var scope = angular.compile(this);
-        scope.init();
-        scope.updateView();
-      });
+      var scope = angular.compile(document);
+      scope.init();
+      scope.updateView();
     });
   </script>  
 </head>

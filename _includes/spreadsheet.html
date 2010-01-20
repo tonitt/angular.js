@@ -1,5 +1,5 @@
 <div id='angular-spreadsheet' class="angular">
-  <table ng-init="invoice={ items:[{name:'Widget', qty:50, cost:9.95}, {name:'Gadget', qty:25, cost:15.95}], taxRate:9, shipping:25.33}">
+  <table ng-init="invoice={ items:[{name:'Widget', qty:50, cost:9.95}, {name:'Gadget', qty:25, cost:15.95, shipping:8.50}], taxRate:9, shipping:8.95}">
     <tbody>
       <tr><th>Qty</th><th>Description</th><th>Unit</th><th>Total</th></tr>
       <tr ng-repeat="item in invoice.items">
@@ -22,9 +22,23 @@
         <td>{{ page.open }} invoice.tax = invoice.taxRate * invoice.sub / 100 | currency {{ page.close }}</td>
         <td>&nbsp;</td>
       </tr>
-      
+      <tr>
+        <td colspan="2"> </td>
+        <td>Shipping:</td>
+        <td>$<input name="invoice.shipping" size="5"/></td>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
+        <td colspan="2"> </td>
+        <td>Total:</td>
+        <td>{{ page.open }} invoice.total = invoice.sub + invoice.tax + invoice.shipping | currency {{ page.close }} </td>
+        <td>&nbsp;</td>
+      </tr>
     </tbody>
   </table>
+  <div>
+    {{ page.open }} {title:'Cost Breakdown', series:[{label:['Goods','Tax','Shipping'], values:[invoice.sub, invoice.tax, invoice.shipping]}]} | chart.pie3d:300:150 {{ page.close }}
+  </div>
 </div>
 
 <!-- {{ page.open }} c * d | currency {{ page.close }} -->
