@@ -21,7 +21,7 @@ div.task {
   margin-bottom: 1em;
 }
 
-div.task  * {
+div.task > * {
   display: block;
   padding: 2px;
 }

@@ -13,7 +13,7 @@ Bi-directional databinding with a javascript library and a few custom attributes
 
 Calculator
 ----------
-databinding, scope evaluation, mustaches
+databinding, mustaches
 
 <div class="angular">
   Quantity: <input type="text" size="5" name="a" value="2"/>
@@ -24,7 +24,7 @@ databinding, scope evaluation, mustaches
 
 Spreadsheet
 -----------
-repeater, filter, actions
+repeater, filters, actions
 
 {% include spreadsheet.html %}
 
