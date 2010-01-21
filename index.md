@@ -34,4 +34,8 @@ Cross-site AJAX to a RESTful JSON store.
 
 Here's an [example](/database.html) connecting to http://www.getangular.com
 
+Slides
+------
+
+<iframe src="http://docs.google.com/present/embed?id=d449gch_237xq95nwdq" frameborder="0" width="410" height="342"></iframe>
 
