@@ -1,8 +1,31 @@
-#content {
-  width: 800px;
-  margin: 0 auto;
+body {
+  background-color: #DDD;
 }
-#footer {
-  margin-top: 2em;
-  text-align:center;
+
+#page {
+  width: 920px;
+  margin: 20px auto;  
+}
+
+#content {
+  width: 680px;
+  background-color: white;
+  padding: 20px;
+  border: 3px solid black;
+}
+#sidebar {
+  width: 180px;
+  float: right;
+}
+
+#sidebar ul {
+  list-style-type: none;
+}
+
+#sidebar li {
+  margin-top: 0.5em;
+}
+
+.angular pre {
+  overflow-x: scroll;
 }
