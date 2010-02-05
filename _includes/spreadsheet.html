@@ -3,9 +3,9 @@
     <tbody>
       <tr><th>Qty</th><th>Description</th><th>Unit</th><th>Total</th></tr>
       <tr ng-repeat="item in invoice.items">
-        <td><input name="item.qty" size="3"/></td>
-        <td><input name="item.name" size="15"/></td>
-        <td><input name="item.cost" size="5"/></td>
+        <td><input name="item.qty" size="3" ng-required="" ng-validate="integer"/></td>
+        <td><input name="item.name" size="15" ng-required=""/></td>
+        <td><input name="item.cost" size="5" ng-required="" ng-validate="number"/></td>
         <td>{{ page.open }} item.total = item.qty * item.cost | currency {{ page.close }}</td>
         <td><a href="" ng-action="invoice.items.$remove(item)">X</a></td>
       </tr>    
@@ -18,7 +18,7 @@
       <tr>
         <td>&nbsp;</td>
         <td>Tax:</td>
-        <td><input name="invoice.taxRate" size="2"/>%</td>
+        <td><input name="invoice.taxRate" size="2" ng-required="" ng-validate="number"/>%</td>
         <td>{{ page.open }} invoice.tax = invoice.taxRate * invoice.sub / 100 | currency {{ page.close }}</td>
         <td>&nbsp;</td>
       </tr>
@@ -39,4 +39,5 @@
   <div>
     {{ page.open }} {title:'Cost Breakdown', series:[{label:['Goods','Tax','Shipping'], values:[invoice.sub, invoice.tax, invoice.shipping]}]} | chart.pie3d:300:150 {{ page.close }}
   </div>
+  <pre>invoice={{ page.open }}invoice{{ page.close }}</pre>
 </div>

@@ -185,18 +185,23 @@ if (typeof Node == 'undefined') {
 function noop() {}
 if (!window['console']) window['console']={'log':noop, 'error':noop};
 
-var consoleNode,
+var consoleNode, msie, 
+    jQuery           = window['jQuery'] || window['$'], // weirdness to make IE happy
     foreach          = _.each,
     extend           = _.extend,
-    jQuery           = window['jQuery'],
-    msie             = jQuery['browser']['msie'],
+    identity         = _.identity,
     angular          = window['angular']    || (window['angular']    = {}), 
     angularValidator = angular['validator'] || (angular['validator'] = {}), 
     angularFilter    = angular['filter']    || (angular['filter']    = {}), 
+    angularFormatter = angular['formatter'] || (angular['formatter'] = {}), 
     angularCallbacks = angular['callbacks'] || (angular['callbacks'] = {}),
     angularAlert     = angular['alert']     || (angular['alert']     = function(){
         log(arguments); window.alert.apply(window, arguments); 
       });
+
+var isVisible = isVisible || function (element) {
+  return jQuery(element).is(":visible");  
+}
 
 function log(a, b, c){
   var console = window['console'];
@@ -299,16 +304,6 @@ function bind(_this, _function) {
   };
 }
 
-function shiftBind(_this, _function) {
-  return function() {
-    var args = [ this ];
-    for ( var i = 0; i < arguments.length; i++) {
-      args.push(arguments[i]);
-    }
-    return _function.apply(_this, args);
-  };
-}
-
 function outerHTML(node) {
   var temp = document.createElement('div');
   temp.appendChild(node);
@@ -342,158 +337,8 @@ function merge(src, dst) {
 }
 
 // ////////////////////////////
-// Angular
+// UrlWatcher
 // ////////////////////////////
-
-function Angular(document, head, config) {
-  this.document = jQuery(document);
-  this.head = jQuery(head);
-  this.config = config;
-  this.location = window.location;
-}
-
-Angular.prototype = {
-  load: function() {
-    this.configureLogging();
-    log("Server: " + this.config.server);
-    this.configureJQueryPlugins();
-    this.computeConfiguration();
-    this.bindHtml();
-  },
-  
-  configureJQueryPlugins: function() {
-    log('Angular.configureJQueryPlugins()');
-    jQuery['fn']['scope'] = function() {
-      var element = this;
-      while (element && element.get(0)) {
-        var scope = element.data("scope");
-        if (scope)
-          return scope;
-        element = element.parent();
-      }
-      return null;
-    };
-    jQuery['fn']['controller'] = function() {
-      return this.data('controller') || NullController.instance;
-    };
-  },
-  
-  uid: function() {
-    return "" + new Date().getTime();
-  },
-  
-  computeConfiguration: function() {
-    var config = this.config;
-    if (!config.database) {
-      var match = config.server.match(/https?:\/\/([\w]*)/);
-      config.database = match ? match[1] : "$MEMORY";
-    }
-  },
-  
-  bindHtml: function() {
-    log('Angular.bindHtml()');
-    var watcher = this.watcher = new UrlWatcher(this.location);
-    var document = this.document;
-    var widgetFactory = new WidgetFactory(this.config.server, this.config.database);
-    var binder = new Binder(document[0], widgetFactory, watcher, this.config);
-    widgetFactory.onChangeListener = shiftBind(binder, binder.updateModel);
-    var controlBar = new ControlBar(document.find('body'), this.config.server);
-    var onUpdate = function(){binder.updateView();};
-    var server = this.config.database=="$MEMORY" ?
-        new FrameServer(this.window) :
-        new Server(this.config.server, jQuery.getScript);
-    server = new VisualServer(server, new Status(jQuery(document.body)), onUpdate);
-    var users = new Users(server, controlBar);
-    var databasePath = '/data/' + this.config.database;
-    var post = function(request, callback){
-      server.request("POST", databasePath, request, callback);
-    };
-    var datastore = new DataStore(post, users, binder.anchor);
-    binder.updateListeners.push(function(){datastore.flush();});
-    var scope = new Scope( {
-      '$anchor' : binder.anchor,
-      '$binder' : binder,
-      '$config' : this.config,
-      '$console' : window.console,
-      '$datastore' : datastore,
-      '$save' : function(callback) {
-        datastore.saveScope(scope.state, callback, binder.anchor);
-      },
-      '$window' : window,
-      '$uid' : this.uid,
-      '$users' : users
-    }, "ROOT");
-  	
-    document.data('scope', scope);
-    log('$binder.entity()');
-    binder.entity(scope);
-  
-    log('$binder.compile()');
-    binder.compile();
-  
-    log('ControlBar.bind()');
-    controlBar.bind();
-  
-    log('$users.fetchCurrentUser()');
-    function fetchCurrentUser() {
-      users.fetchCurrentUser(function(u) {
-        if (!u && document.find("[ng-auth=eager]").length) {
-          users.login();
-        }
-      });
-    }
-    fetchCurrentUser();
-  
-    log('PopUp.bind()');
-    new PopUp(document).bind();
-  
-    log('$binder.parseAnchor()');
-    binder.parseAnchor();
-    
-    document.find("body").show();
-    log('ready()');
-  },
-  
-  visualPost: function(delegate) {
-    var status = new Status(jQuery(document.body));
-    return function(request, delegateCallback) {
-      status.beginRequest(request);
-      var callback = function() {
-        status.endRequest();
-        try {
-          delegateCallback.apply(this, arguments);
-        } catch (e) {
-          alert(toJson(e));
-        }
-      };
-      delegate(request, callback);
-    };
-  },
-  
-  configureLogging: function() {
-    var url = window.location.href + '#';
-    url = url.split('#')[1];
-    var config = {
-      debug : null
-    };
-    var configs = url.split('&');
-    for ( var i = 0; i < configs.length; i++) {
-      var part = (configs[i] + '=').split('=');
-      config[part[0]] = part[1];
-    }
-    if (config.debug == 'console') {
-      consoleNode = document.createElement("div");
-      consoleNode.id = 'ng-console';
-      document.getElementsByTagName('body')[0].appendChild(consoleNode);
-      log = function() {
-        consoleLog('ng-console-info', arguments);
-      };
-      console.error = function() {
-        consoleLog('ng-console-error', arguments);
-      };
-    }
-  }
-};
 
 function UrlWatcher(location) {
   this.location = location;
@@ -508,6 +353,9 @@ function UrlWatcher(location) {
 }
 
 UrlWatcher.prototype = {
+  listen: function(fn){
+    this.listener = fn;
+  },
   watch: function() {
     var self = this;
     var pull = function() {
@@ -536,48 +384,153 @@ UrlWatcher.prototype = {
     pull();
   },
   
-  setUrl: function(url) {
-    //TODO: conditionaly?
-    var existingURL = window.location.href;
+  set: function(url) {
+    var existingURL = this.location.href;
     if (!existingURL.match(/#/))
       existingURL += '#';
     if (existingURL != url)
-      window.location.href = url;
+      this.location.href = url;
     this.existingURL = url;
   },
   
-  getUrl: function() {
+  get: function() {
     return window.location.href;
   }
 };
-  
-angular['compile'] = function(root, config) {
-  config = config || {};
-  var defaults = {
-    'server': "",
-    'addUrlChangeListener': noop
-  };
-  //todo: don't start watcher
-  var angular = new Angular(root, jQuery("head"), _(defaults).extend(config));
-  //todo: don't load stylesheet by default
-  // loader.loadCss('/stylesheets/jquery-ui/smoothness/jquery-ui-1.7.1.css');
-  // loader.loadCss('/stylesheets/css');
-  angular.load();
-  var scope = jQuery(root).scope();
-  //TODO: cleanup
-  return {
-    'updateView':function(){return scope.updateView();},
-    'set':function(){return scope.set.apply(scope, arguments);},
-    'get':function(){return scope.get.apply(scope, arguments);},
-    'init':function(){scope.get('$binder.executeInit')(); scope.updateView();},
-    'watchUrl':function(){
-      var binder = scope.get('$binder');
-      var watcher = angular.watcher;
-      watcher.listener = bind(binder, binder.onUrlChange, watcher);
-      watcher.onUpdate = function(){alert("update");};
-      watcher.watch();
+
+/////////////////////////////////////////////////
+function configureJQueryPlugins() {
+  var fn = jQuery['fn'];
+  fn['scope'] = function() {
+    var element = this;
+    while (element && element.get(0)) {
+      var scope = element.data("scope");
+      if (scope)
+        return scope;
+      element = element.parent();
     }
+    return null;
   };
+  fn['controller'] = function() {
+    return this.data('controller') || NullController.instance;
+  };
+}
+
+function configureLogging(config) {
+  if (config.debug == 'console' && !consoleNode) {
+    consoleNode = document.createElement("div");
+    consoleNode.id = 'ng-console';
+    document.getElementsByTagName('body')[0].appendChild(consoleNode);
+    log = function() {
+      consoleLog('ng-console-info', arguments);
+    };
+    console.error = function() {
+      consoleLog('ng-console-error', arguments);
+    };
+  }
+}
+
+function exposeMethods(obj, methods){
+  var bound = {};
+  foreach(methods, function(fn, name){
+    bound[name] = _(fn).bind(obj);
+  });
+  return bound;
+}
+
+function wireAngular(element, config) {
+  var widgetFactory = new WidgetFactory(config['server'], config['database']);
+  var binder = new Binder(element[0], widgetFactory, datastore, config['location'], config);
+  var controlBar = new ControlBar(element.find('body'), config['server'], config['database']);
+  var onUpdate = function(){binder.updateView();};
+  var server = config['database'] =="$MEMORY" ?
+      new FrameServer(window) :
+      new Server(config['server'], jQuery['getScript']);
+  server = new VisualServer(server, new Status(element.find('body')), onUpdate);
+  var users = new Users(server, controlBar);
+  var databasePath = '/data/' + config['database'];
+  var post = function(request, callback){
+    server.request("POST", databasePath, request, callback);
+  };
+  var datastore = new DataStore(post, users, binder.anchor);
+  binder.datastore = datastore;
+  binder.updateListeners.push(function(){datastore.flush();});
+  var scope = new Scope({
+    '$anchor'    : binder.anchor,
+    '$updateView': _(binder.updateView).bind(binder),
+    '$config'    : config,
+    '$invalidWidgets': [],
+    '$console'   : window.console,
+    '$datastore' : exposeMethods(datastore, {
+      'load':                    datastore.load,
+      'loadMany':                datastore.loadMany,
+      'loadOrCreate':            datastore.loadOrCreate,
+      'loadAll':                 datastore.loadAll,
+      'save':                    datastore.save,
+      'remove':                  datastore.remove,
+      'flush':                   datastore.flush,
+      'query':                   datastore.query,
+      'entity':                  datastore.entity,
+      'entities':                datastore.entities,
+      'documentCountsByUser':    datastore.documentCountsByUser,
+      'userDocumentIdsByEntity': datastore.userDocumentIdsByEntity,
+      'join':                    datastore.join
+    }),
+    '$save' : function(callback) {
+      datastore.saveScope(scope.state, callback, binder.anchor);
+    },
+    '$window' : window,
+    '$uid' : function() {
+      return "" + new Date().getTime();
+    },
+    '$users' : users
+  }, "ROOT");
+
+  element.data('scope', scope);
+  binder.entity(scope);
+  binder.compile();
+  controlBar.bind();
+  
+  //TODO: remove this code
+  new PopUp(element).bind();
+  
+  var self = _(exposeMethods(scope, {
+    'set':        scope.set,
+    'get':        scope.get,
+    'eval':       scope.eval
+  })).extend({
+    'init':function(){
+        config['location']['listen'](_(binder.onUrlChange).bind(binder));
+        binder.parseAnchor();
+        binder.executeInit(); 
+        binder.updateView(); 
+        return self;
+      },
+    'element':element[0],
+    'updateView': _(binder.updateView).bind(binder),
+    'config':config
+  });
+  return self;
+}
+
+angular['startUrlWatcher'] = function(){ 
+  var watcher = new UrlWatcher(window['location']);
+  watcher.watch();
+  return exposeMethods(watcher, {'listen':watcher.listen, 'set':watcher.set, 'get':watcher.get});
+};
+
+angular['compile'] = function(element, config) {
+  jQuery = window['jQuery'];
+  msie   = jQuery['browser']['msie'];
+  config = _({
+      'server': "",
+      'location': {'get':noop, 'set':noop, 'listen':noop}
+    }).extend(config||{});
+
+  configureLogging(config);
+  configureJQueryPlugins();
+  
+  return wireAngular(jQuery(element), config);
 };var angularGlobal = {
   'typeOf':function(obj){
     if (obj === null) return "null";
@@ -899,11 +852,14 @@ defineApi('Object', [angularGlobal, angularCollection, angularObject],
     ['keys', 'values']);
 defineApi('String', [angularGlobal, angularString], []);
 defineApi('Date', [angularGlobal, angularDate], []);
+//IE bug
+angular['Date']['toString'] = angularDate['toString'];
 defineApi('Function', [angularGlobal, angularCollection, angularFunction],
     ['bind', 'bindAll', 'delay', 'defer', 'wrap', 'compose']);
-function Binder(doc, widgetFactory, urlWatcher, config) {
+function Binder(doc, widgetFactory, datastore, location, config) {
   this.doc = doc;
-  this.urlWatcher = urlWatcher;
+  this.location = location;
+  this.datastore = datastore;
   this.anchor = {};
   this.widgetFactory = widgetFactory;
   this.config = config || {};
@@ -951,9 +907,8 @@ Binder.prototype = {
     return params;
   },
   
-  parseAnchor: function(url) {
-    var self = this;
-    url = url || this.urlWatcher.getUrl();
+  parseAnchor: function() {
+    var self = this, url = this.location['get']() || "";
   
     var anchorIndex = url.indexOf('#');
     if (anchorIndex < 0) return;
@@ -968,13 +923,13 @@ Binder.prototype = {
     });
   },
   
-  onUrlChange: function (url) {
-    this.parseAnchor(url);
+  onUrlChange: function() {
+    this.parseAnchor();
     this.updateView();
   },
   
   updateAnchor: function() {
-    var url = this.urlWatcher.getUrl();
+    var url = this.location['get']() || "";
     var anchorIndex = url.indexOf('#');
     if (anchorIndex > -1)
       url = url.substring(0, anchorIndex);
@@ -991,14 +946,14 @@ Binder.prototype = {
         sep = '&';
       }
     }
-    this.urlWatcher.setUrl(url);
+    this.location['set'](url);
     return url;
   },
   
   updateView: function() {
     var start = new Date().getTime();
     var scope = jQuery(this.doc).scope();
-    scope.set("$invalidWidgets", []);
+    scope.clearInvalid();
     scope.updateView();
     var end = new Date().getTime();
     this.updateAnchor();
@@ -1027,12 +982,14 @@ Binder.prototype = {
   },
   
   entity: function (scope) {
+    var self = this;
     this.docFindWithSelf("[ng-entity]").attr("ng-watch", function() {
       try {
         var jNode = jQuery(this);
-        var decl = scope.entity(jNode.attr("ng-entity"));
+        var decl = scope.entity(jNode.attr("ng-entity"), self.datastore);
         return decl + (jNode.attr('ng-watch') || "");
       } catch (e) {
+        log(e);
         alert(e);
       }
     });
@@ -1040,8 +997,7 @@ Binder.prototype = {
   
   compile: function() {
     var jNode = jQuery(this.doc);
-    var self = this;
-    if (this.config.autoSubmit) {
+    if (this.config['autoSubmit']) {
       var submits = this.docFindWithSelf(":submit").not("[ng-action]");
       submits.attr("ng-action", "$save()");
       submits.not(":disabled").not("ng-bind-attr").attr("ng-bind-attr", '{disabled:"{{$invalidWidgets}}"}');
@@ -1049,15 +1005,16 @@ Binder.prototype = {
     this.precompile(this.doc)(this.doc, jNode.scope(), "");
     this.docFindWithSelf("a[ng-action]").live('click', function (event) {
       var jNode = jQuery(this);
+      var scope = jNode.scope();
       try {
-        jNode.scope().eval(jNode.attr('ng-action'));
+        scope.eval(jNode.attr('ng-action'));
         jNode.removeAttr('ng-error');
         jNode.removeClass("ng-exception");
       } catch (e) {
         jNode.addClass("ng-exception");
         jNode.attr('ng-error', toJson(e, true));
       }
-      self.updateView();
+      scope.get('$updateView')();
       return false;
     });
   },
@@ -1250,10 +1207,11 @@ Binder.prototype = {
   ng_watch: function(node, scope) {
     scope.watch(node.getAttribute('ng-watch'));
   }
-};function ControlBar(document, serverUrl) {
-  this.document = document;
+};function ControlBar(document, serverUrl, database) {
+  this._document = document;
   this.serverUrl = serverUrl;
-  this.window = window;
+  this.database = database;
+  this._window = window;
   this.callbacks = [];
 };
 
@@ -1265,12 +1223,11 @@ ControlBar.HTML =
     '</div>' +
   '</div>';
 
+
 ControlBar.FORBIDEN =
   '<div ng-non-bindable="true" title="Permission Error:">' +
     'Sorry, you do not have permission for this!'+
   '</div>';
-
-
 
 ControlBar.prototype = {
   bind: function () {
@@ -1279,7 +1236,7 @@ ControlBar.prototype = {
   login: function (loginSubmitFn) {
     this.callbacks.push(loginSubmitFn);
     if (this.callbacks.length == 1) {
-      this.doTemplate("/user_session/new.mini?return_url=" + encodeURIComponent(this.urlWithoutAnchor()));
+      this.doTemplate("/user_session/new.mini?database="+encodeURIComponent(this.database)+"&return_url=" + encodeURIComponent(this.urlWithoutAnchor()));
     }
   },
   
@@ -1291,25 +1248,24 @@ ControlBar.prototype = {
   },
   
   urlWithoutAnchor: function (path) {
-    return this.window.location.href.split("#")[0];
+    return this._window['location']['href'].split("#")[0];
   },
   
   doTemplate: function (path) {
     var self = this;
     var id = new Date().getTime();
-    var url = this.urlWithoutAnchor();
-    url += "#$iframe_notify=" + id;
+    var url = this.urlWithoutAnchor() + "#$iframe_notify=" + id;
     var iframeHeight = 330;
     var loginView = jQuery('<div style="overflow:hidden; padding:2px 0 0 0;"><iframe name="'+ url +'" src="'+this.serverUrl + path + '" width="500" height="'+ iframeHeight +'"/></div>');
-    this.document.append(loginView);
-    loginView.dialog({
-      height:iframeHeight + 33, width:500,
-      resizable: false, modal:true,
-      title: 'Authentication: <a href="http://www.getangular.com"><tt>&lt;angular/&gt;</tt></a>'
+    this._document.append(loginView);
+    loginView['dialog']({
+      'height':iframeHeight + 33, 'width':500,
+      'resizable': false, 'modal':true,
+      'title': 'Authentication: <a href="http://www.getangular.com"><tt>&lt;angular/&gt;</tt></a>'
     });
-    callbacks["_iframe_notify_" + id] = function() {
-      loginView.dialog("destroy");
-      loginView.remove();
+    angularCallbacks["_iframe_notify_" + id] = function() {
+      loginView['dialog']("destroy");
+      loginView['remove']();
       foreach(self.callbacks, function(callback){
         callback();
       });
@@ -1325,7 +1281,8 @@ ControlBar.prototype = {
 };function DataStore(post, users, anchor) {
   this.post = post;
   this.users = users;
-  this._cache = {$collections:[]};
+  this._cache_collections = [];
+  this._cache = {'$collections':this._cache_collections};
   this.anchor = anchor;
   this.bulkRequest = [];
 };
@@ -1339,10 +1296,10 @@ DataStore.NullEntity = extend(function(){}, {
 
 DataStore.prototype = {
   cache: function(document) {
-    if (! document instanceof Model) {
+    if (! document.datastore === this) {
       throw "Parameter must be an instance of Entity! " + toJson(document);
     }
-    var key = document.$entity + '/' + document.$id;
+    var key = document['$entity'] + '/' + document['$id'];
     var cachedDocument = this._cache[key];
     if (cachedDocument) {
       Model.copyDirectFields(document, cachedDocument);
@@ -1356,10 +1313,10 @@ DataStore.prototype = {
   load: function(instance, id, callback, failure) {
     if (id && id !== '*') {
       var self = this;
-      this._jsonRequest(["GET", instance.$entity + "/" + id], function(response) {
-        instance.$loadFrom(response);
-        instance.$migrate();
-        var clone = instance.$$entity(instance);
+      this._jsonRequest(["GET", instance['$entity'] + "/" + id], function(response) {
+        instance['$loadFrom'](response);
+        instance['$migrate']();
+        var clone = instance['$$entity'](instance);
         self.cache(clone);
         (callback||noop)(instance);
       }, failure);
@@ -1385,8 +1342,8 @@ DataStore.prototype = {
   loadOrCreate: function(instance, id, callback) {
     var self=this;
     return this.load(instance, id, callback, function(response){
-      if (response.$status_code == 404) {
-        instance.$id = id;
+      if (response['$status_code'] == 404) {
+        instance['$id'] = id;
         (callback||noop)(instance);
       } else {
         throw response;
@@ -1397,15 +1354,15 @@ DataStore.prototype = {
   loadAll: function(entity, callback) {
     var self = this;
     var list = [];
-    list.$$accept = function(doc){
-      return doc.$entity == entity.title;
+    list['$$accept'] = function(doc){
+      return doc['$entity'] == entity['title'];
     };
-    this._cache.$collections.push(list);
-    this._jsonRequest(["GET", entity.title], function(response) {
+    this._cache_collections.push(list);
+    this._jsonRequest(["GET", entity['title']], function(response) {
       var rows = response;
       for ( var i = 0; i < rows.length; i++) {
         var document = entity();
-        document.$loadFrom(rows[i]);
+        document['$loadFrom'](rows[i]);
         list.push(self.cache(document));
       }
       (callback||noop)(list);
@@ -1416,17 +1373,17 @@ DataStore.prototype = {
   save: function(document, callback) {
     var self = this;
     var data = {};
-    document.$saveTo(data);
+    document['$saveTo'](data);
     this._jsonRequest(["POST", "", data], function(response) {
-      document.$loadFrom(response);
+      document['$loadFrom'](response);
       var cachedDoc = self.cache(document);
-      _.each(self._cache.$collections, function(collection){
-        if (collection.$$accept(document)) {
-          angular['Array']['includeIf'](collection, cachedDoc, true);
+      _.each(self._cache_collections, function(collection){
+        if (collection['$$accept'](document)) {
+          angularArray['includeIf'](collection, cachedDoc, true);
         }
       });
-      if (document.$$anchor) {
-        self.anchor[document.$$anchor] = document.$id;
+      if (document['$$anchor']) {
+        self.anchor[document['$$anchor']] = document['$id'];
       }
       if (callback)
         callback(document);
@@ -1436,13 +1393,13 @@ DataStore.prototype = {
   remove: function(document, callback) {
     var self = this;
     var data = {};
-    document.$saveTo(data);
+    document['$saveTo'](data);
     this._jsonRequest(["DELETE", "", data], function(response) {
-      delete self._cache[document.$entity + '/' + document.$id];
-      _.each(self._cache.$collections, function(collection){
+      delete self._cache[document['$entity'] + '/' + document['$id']];
+      _.each(self._cache_collections, function(collection){
         for ( var i = 0; i < collection.length; i++) {
           var item = collection[i];
-          if (item.$id == document.$id) {
+          if (item['$id'] == document['$id']) {
             collection.splice(i, 1);
           }
         }
@@ -1452,8 +1409,8 @@ DataStore.prototype = {
   },
   
   _jsonRequest: function(request, callback, failure) {
-    request.$$callback = callback;
-    request.$$failure = failure||function(response){
+    request['$$callback'] = callback;
+    request['$$failure'] = failure||function(response){
       throw response;
     };
     this.bulkRequest.push(request);
@@ -1467,25 +1424,25 @@ DataStore.prototype = {
     log('REQUEST:', bulkRequest);
     function callback(code, bulkResponse){
       log('RESPONSE[' + code + ']: ', bulkResponse);
-      if(bulkResponse.$status_code == 401) {
-        self.users.login(function(){
+      if(bulkResponse['$status_code'] == 401) {
+        self.users['login'](function(){
           self.post(bulkRequest, callback);
         });
-      } else if(bulkResponse.$status_code) {
+      } else if(bulkResponse['$status_code']) {
         alert(toJson(bulkResponse));
       } else {
         for ( var i = 0; i < bulkResponse.length; i++) {
           var response = bulkResponse[i];
           var request = bulkRequest[i];
-          var responseCode = response.$status_code;
+          var responseCode = response['$status_code'];
           if(responseCode) {
             if(responseCode == 403) {
-              self.users.notAuthorized();
+              self.users['notAuthorized']();
             } else {
-              request.$$failure(response);
+              request['$$failure'](response);
             }
           } else {
-            request.$$callback(response);
+            request['$$callback'](response);
           }
         }
       }
@@ -1502,9 +1459,9 @@ DataStore.prototype = {
     }
     for(var key in scope) {
       var item = scope[key];
-      if (item && item.$save == Model.prototype.$save) {
+      if (item && item['$save'] == Model.prototype['$save']) {
         saveCounter++;
-        item.$save(onSaveDone);
+        item['$save'](onSaveDone);
       }
     }
     onSaveDone();
@@ -1513,19 +1470,18 @@ DataStore.prototype = {
   query: function(type, query, arg, callback){
     var self = this;
     var queryList = [];
-    queryList.$$accept = function(doc){
+    queryList['$$accept'] = function(doc){
       return false;
     };
-    this._cache.$collections.push(queryList);
-    var request = type.title + '/' + query + '=' + arg;
+    this._cache_collections.push(queryList);
+    var request = type['title'] + '/' + query + '=' + arg;
     this._jsonRequest(["GET", request], function(response){
       var list = response;
-      for(var i = 0; i < list.length; i++) {
-        var document = new type().$loadFrom(list[i]);
+      foreach(list, function(item){
+        var document = type()['$loadFrom'](item);
         queryList.push(self.cache(document));
-      }
-      if (callback)
-        callback(queryList);
+      });
+      (callback||noop)(queryList);
     });
     return queryList;
   },
@@ -1534,11 +1490,11 @@ DataStore.prototype = {
     var entities = [];
     var self = this;
     this._jsonRequest(["GET", "$entities"], function(response) {
-      for (var entityName in response) {
+      foreach(response, function(value, entityName){
         entities.push(self.entity(entityName));
-      }
+      });
       entities.sort(function(a,b){return a.title > b.title ? 1 : -1;});
-      if (callback) callback(entities);
+      (callback||noop)(entities);
     });
     return entities;
   },
@@ -1547,9 +1503,7 @@ DataStore.prototype = {
     var counts = {};
     var self = this;
     self.post([["GET", "$users"]], function(code, response){
-      foreach(response[0], function(value, key){
-        counts[key] = value;
-      });
+      extend(counts, response[0]);
     });
     return counts;
   },
@@ -1558,9 +1512,7 @@ DataStore.prototype = {
     var ids = {};
     var self = this;
     self.post([["GET", "$users/" + user]], function(code, response){
-      foreach(response[0], function(value, key){
-        ids[key] = value;
-      });
+      extend(ids, response[0]);
     });
     return ids;
   },
@@ -1576,7 +1528,7 @@ DataStore.prototype = {
       // entity.name does not work as name seems to be reserved for functions
       'title': name,
       '$$factory': true,
-      'datastore': this,
+      datastore: this, //private, obfuscate
       'defaults': defaults || {},
       'load': function(id, callback){
         return self.load(entity(), id, callback);
@@ -1841,25 +1793,25 @@ foreach({
     function(type, data, width, height) {
       data = data || {};
       var chart = {
-          cht:type, 
-          chco:angularFilterGoogleChartApi.collect(data, 'color'),
-          chtt:angularFilterGoogleChartApi.title(data),
-          chdl:angularFilterGoogleChartApi.collect(data, 'label'),
-          chd:angularFilterGoogleChartApi.values(data),
-          chf:'bg,s,FFFFFF00'
+          'cht':type, 
+          'chco':angularFilterGoogleChartApi['collect'](data, 'color'),
+          'chtt':angularFilterGoogleChartApi['title'](data),
+          'chdl':angularFilterGoogleChartApi['collect'](data, 'label'),
+          'chd':angularFilterGoogleChartApi['values'](data),
+          'chf':'bg,s,FFFFFF00'
         };
-      if (_.isArray(data.xLabels)) {
-        chart.chxt='x';
-        chart.chxl='0:|' + data.xLabels.join('|');
+      if (_.isArray(data['xLabels'])) {
+        chart['chxt']='x';
+        chart['chxl']='0:|' + data.xLabels.join('|');
       }
       return angularFilterGoogleChartApi['encode'](chart, width, height);
     },
     {
       'values': function(data){
         var seriesValues = [];
-        foreach(data.series||[], function(serie){
+        foreach(data['series']||[], function(serie){
           var values = [];
-          foreach(serie.values||[], function(value){
+          foreach(serie['values']||[], function(value){
             values.push(value);
           });
           seriesValues.push(values.join(','));
@@ -1870,7 +1822,7 @@ foreach({
       
       'title': function(data){
         var titles = [];
-        var title = data.title || [];
+        var title = data['title'] || [];
         foreach(_.isArray(title)?title:[title], function(text){
           titles.push(encodeURIComponent(text));
         });
@@ -1880,7 +1832,7 @@ foreach({
       'collect': function(data, key){
         var outterValues = [];
         var count = 0;
-        foreach(data.series||[], function(serie){
+        foreach(data['series']||[], function(serie){
           var innerValues = [];
           var value = serie[key] || [];
           foreach(_.isArray(value)?value:[value], function(color){
@@ -1897,7 +1849,7 @@ foreach({
         height = height || width;
         var url = "http://chart.apis.google.com/chart?";
         var urlParam = [];
-        params.chs = width + "x" + height;
+        params['chs'] = width + "x" + height;
         foreach(params, function(value, key){
           if (value) {
             urlParam.push(key + "=" + value);
@@ -1913,37 +1865,38 @@ foreach({
   
   
   'qrcode': function(value, width, height) {
-    return angularFilterGoogleChartApi['encode']({cht:'qr', chl:encodeURIComponent(value)}, width, height);
+    return angularFilterGoogleChartApi['encode']({
+      'cht':'qr', 'chl':encodeURIComponent(value)}, width, height);
   },
   'chart': {
-    pie:function(data, width, height) {
+    'pie':function(data, width, height) {
       return angularFilterGoogleChartApi('p', data, width, height);
     },
-    pie3d:function(data, width, height) {
+    'pie3d':function(data, width, height) {
       return angularFilterGoogleChartApi('p3', data, width, height);
     },
-    pieConcentric:function(data, width, height) {
+    'pieConcentric':function(data, width, height) {
       return angularFilterGoogleChartApi('pc', data, width, height);
     },
-    barHorizontalStacked:function(data, width, height) {
+    'barHorizontalStacked':function(data, width, height) {
       return angularFilterGoogleChartApi('bhs', data, width, height);
     },
-    barHorizontalGrouped:function(data, width, height) {
+    'barHorizontalGrouped':function(data, width, height) {
       return angularFilterGoogleChartApi('bhg', data, width, height);
     },
-    barVerticalStacked:function(data, width, height) {
+    'barVerticalStacked':function(data, width, height) {
       return angularFilterGoogleChartApi('bvs', data, width, height);
     },
-    barVerticalGrouped:function(data, width, height) {
+    'barVerticalGrouped':function(data, width, height) {
       return angularFilterGoogleChartApi('bvg', data, width, height);
     },
-    line:function(data, width, height) {
+    'line':function(data, width, height) {
       return angularFilterGoogleChartApi('lc', data, width, height);
     },
-    sparkline:function(data, width, height) {
+    'sparkline':function(data, width, height) {
       return angularFilterGoogleChartApi('ls', data, width, height);
     },
-    scatter:function(data, width, height) {
+    'scatter':function(data, width, height) {
       return angularFilterGoogleChartApi('s', data, width, height);
     }
   },
@@ -1976,11 +1929,29 @@ foreach({
 }, function(v,k){angularFilter[k] = v;});
 
 angularFilterGoogleChartApi = angularFilter['googleChartApi'];
+function formater(format, parse) {return {'format':format, 'parse':parse || format};}
+function toString(obj) {return ""+obj;};
+extend(angularFormatter, {
+  'noop':formater(identity, identity),
+  'boolean':formater(toString, toBoolean),
+  'number':formater(toString, function(obj){return 1*obj;}),
+
+  'list':formater(
+    function(obj) { return obj ? obj.join(", ") : obj; },
+    function(value) { 
+      return value ? _(_(value.split(',')).map(jQuery.trim)).select(_.identity) : [];
+    }
+  ),
+
+  'trim':formater(
+    function(obj) { return obj ? $.trim("" + obj) : ""; }
+  )  
+});
 array = [].constructor;
 
 function toJson(obj, pretty){
   var buf = [];
-  toJsonArray(buf, obj, pretty ? "\n  " : null);
+  toJsonArray(buf, obj, pretty ? "\n  " : null, _([]));
   return buf.join('');
 };
 
@@ -2003,7 +1974,14 @@ function fromJson(json) {
 angular['toJson'] = toJson;
 angular['fromJson'] = fromJson;
 
-function toJsonArray(buf, obj, pretty){
+function toJsonArray(buf, obj, pretty, stack){
+  if (typeof obj == "object") {
+    if (stack.include(obj)) {
+      buf.push("RECURSION");
+      return;
+    }
+    stack.push(obj);
+  }
   var type = typeof obj;
   if (obj === null) {
     buf.push("null");
@@ -2030,7 +2008,7 @@ function toJsonArray(buf, obj, pretty){
         if (typeof item == 'function' || typeof item == 'undefined') {
           buf.push("null");
         } else {
-          toJsonArray(buf, item, pretty);
+          toJsonArray(buf, item, pretty, stack);
         }
         sep = true;
       }
@@ -2060,7 +2038,7 @@ function toJsonArray(buf, obj, pretty){
             }
             buf.push(angular['String']['quote'](key));
             buf.push(":");
-            toJsonArray(buf, value, childPretty);
+            toJsonArray(buf, value, childPretty, stack);
             comma = true;
           }
         } catch (e) {
@@ -2069,15 +2047,18 @@ function toJsonArray(buf, obj, pretty){
       buf.push("}");
     }
   }
+  if (typeof obj == "object") {
+    stack.pop();
+  }
 };
 // Single $ is special and does not get searched
 // Double $$ is special an is client only (does not get sent to server)
 
 function Model(entity, initial) {
   this['$$entity'] = entity;
-  this.$loadFrom(initial||{});
-  this.$entity = entity['title'];
-  this.$migrate();
+  this['$loadFrom'](initial||{});
+  this['$entity'] = entity['title'];
+  this['$migrate']();
 };
 
 Model.copyDirectFields = function(src, dst) {
@@ -2097,9 +2078,9 @@ Model.copyDirectFields = function(src, dst) {
   }
 };
 
-Model.prototype = {
+extend(Model.prototype, {
   '$migrate': function() {
-    merge(this['$$entity'].defaults, this);
+    merge(this['$$entity']['defaults'], this);
     return this;
   },
   
@@ -2134,7 +2115,7 @@ Model.prototype = {
     Model.copyDirectFields(this, other);
     return this;
   }
-};function Lexer(text, parsStrings){
+});function Lexer(text, parsStrings){
   this.text = text;
   // UTC dates have 20 characters, we send them through parser
   this.dateParseLength = parsStrings ? 20 : -1;
@@ -2827,12 +2808,11 @@ Parser.prototype = {
       defaults = this.primary()(null);
     }
     return function(self) {
-      var datastore = self.scope.get('$datastore');
-      var Entity = datastore.entity(entity, defaults);
+      var Entity = self.datastore.entity(entity, defaults);
       self.scope.set(entity, Entity);
       if (instance) {
         var document = Entity();
-        document.$$anchor = instance;
+        document['$$anchor'] = instance;
         self.scope.set(instance, document);
         return "$anchor." + instance + ":{" + 
             instance + "=" + entity + ".load($anchor." + instance + ");" +
@@ -2887,9 +2867,9 @@ function Scope(initialState, name) {
   var State = function(){};
   State.prototype = initialState;
   this.state = new State();
-  this.state.$parent = initialState;
+  this.state['$parent'] = initialState;
   if (name == "ROOT") {
-    this.state.$root = this.state;
+    this.state['$root'] = this.state;
   }
 };
 
@@ -2918,7 +2898,7 @@ Scope.getter = function(instance, path) {
       }
     }
   }
-  if (typeof instance === 'function' && !instance.$$factory) {
+  if (typeof instance === 'function' && !instance['$$factory']) {
     return bind(lastInstance, instance);
   }
   return instance;
@@ -2950,10 +2930,12 @@ Scope.prototype = {
   },
     
   get: function(path) {
+//    log('SCOPE.get', path, Scope.getter(this.state, path));
     return Scope.getter(this.state, path);
   },
   
   set: function(path, value) {
+//    log('SCOPE.set', path, value);
     var element = path.split('.');
     var instance = this.state;
     for ( var i = 0; element.length > 1; i++) {
@@ -2974,6 +2956,7 @@ Scope.prototype = {
   },
   
   eval: function(expressionText, context) {
+//    log('Scope.eval', expressionText);
     var expression = Scope.expressionCache[expressionText];
     if (!expression) {
       var parser = new Parser(expressionText);
@@ -3026,13 +3009,18 @@ Scope.prototype = {
     return expression(self)(self, value);
   },
   
-  entity: function(entityDeclaration) {
+  entity: function(entityDeclaration, datastore) {
     var expression = new Parser(entityDeclaration).entityDeclaration();
-    return expression({scope:this});
+    return expression({scope:this, datastore:datastore});
+  },
+  
+  clearInvalid: function() {
+    var invalid = this.state['$invalidWidgets'];
+    while(invalid.length > 0) {invalid.pop();}
   },
   
   markInvalid: function(widget) {
-    this.state.$invalidWidgets.push(widget);
+    this.state['$invalidWidgets'].push(widget);
   },
   
   watch: function(declaration) {
@@ -3090,14 +3078,13 @@ Server.prototype = {
   
   request: function(method, url, request, callback) {
     var requestId = this.uuid + (this.nextId++);
-    angularCallbacks[requestId] = function(response) {
-      delete angular[requestId];
-      callback(200, response);
-    };
-    var payload = {u:url, m:method, p:request};
-    payload = this.base64url(toJson(payload));
+    var payload = this.base64url(toJson({'u':url, 'm':method, 'p':request}));
     var totalPockets = Math.ceil(payload.length / this.maxSize);
     var baseUrl = this.url + "/$/" + requestId +  "/" + totalPockets + "/";
+    angularCallbacks[requestId] = function(response) {
+      delete angularCallbacks[requestId];
+      callback(200, response);
+    };
     for ( var pocketNo = 0; pocketNo < totalPockets; pocketNo++) {
       var pocket = payload.substr(pocketNo * this.maxSize, this.maxSize);
       this.getScript(baseUrl + (pocketNo+1) + "?h=" + pocket, noop);
@@ -3149,11 +3136,11 @@ function Users(server, controlBar) {
   this.controlBar = controlBar;
 };
 
-Users.prototype = {
+extend(Users.prototype, {
   'fetchCurrentUser':function(callback) {
     var self = this;
     this.server.request("GET", "/account.json", {}, function(code, response){
-      self.current = response.user;
+      self['current'] = response['user'];
       callback(response.user);
     });
   },
@@ -3161,7 +3148,7 @@ Users.prototype = {
   'logout': function(callback) {
     var self = this;
     this.controlBar.logout(function(){
-      delete self.current;
+      delete self['current'];
       (callback||noop)();
     });
   },
@@ -3169,7 +3156,7 @@ Users.prototype = {
   'login': function(callback) {
     var self = this;
     this.controlBar.login(function(){
-      self.fetchCurrentUser(function(){
+      self['fetchCurrentUser'](function(){
         (callback||noop)();
       });
     });
@@ -3178,7 +3165,7 @@ Users.prototype = {
   'notAuthorized': function(){
     this.controlBar.notAuthorized();
   }
-};
+});
 foreach({
   'regexp': function(value, regexp, msg) {
     if (!value.match(regexp)) {
@@ -3263,14 +3250,13 @@ function WidgetFactory(serverUrl, database) {
   this.nextUploadId = 0;
   this.serverUrl = serverUrl;
   this.database = database;
-  if (window.swfobject) {
-    this.createSWF = swfobject.createSWF;
+  if (window['swfobject']) {
+    this.createSWF = window['swfobject']['createSWF'];
   } else {
     this.createSWF = function(){
       alert("ERROR: swfobject not loaded!");
     };
   }
-  this.onChangeListener = function(){};
 };
 
 WidgetFactory.prototype = {
@@ -3281,35 +3267,36 @@ WidgetFactory.prototype = {
     if (exp) exp = exp.split(':').pop();
     var event = "change";
     var bubbleEvent = true;
+    var formatter = angularFormatter[input.attr('ng-format')] || angularFormatter['noop'];
     if (type == 'button' || type == 'submit' || type == 'reset' || type == 'image') {
-      controller = new ButtonController(input[0], exp);
+      controller = new ButtonController(input[0], exp, formatter);
       event = "click";
       bubbleEvent = false;
     } else if (type == 'text' || type == 'textarea' || type == 'hidden' || type == 'password') {
-      controller = new TextController(input[0], exp);
+      controller = new TextController(input[0], exp, formatter);
       event = "keyup change";
     } else if (type == 'checkbox') {
-      controller = new CheckboxController(input[0], exp);
+      controller = new CheckboxController(input[0], exp, formatter);
       event = "click";
     } else if (type == 'radio') {
-      controller = new RadioController(input[0], exp);
+      controller = new RadioController(input[0], exp, formatter);
       event="click";
     } else if (type == 'select-one') {
-      controller = new SelectController(input[0], exp);
+      controller = new SelectController(input[0], exp, formatter);
     } else if (type == 'select-multiple') {
-      controller = new MultiSelectController(input[0], exp);
+      controller = new MultiSelectController(input[0], exp, formatter);
     } else if (type == 'file') {
-      controller = this.createFileController(input, exp);
+      controller = this.createFileController(input, exp, formatter);
     } else {
       throw 'Unknown type: ' + type;
     }
     input.data('controller', controller);
-    var binder = scope.get('$binder');
+    var updateView = scope.get('$updateView');
     var action = function() {
       if (controller.updateModel(scope)) {
         var action = jQuery(controller.view).attr('ng-action') || "";
         if (scope.evalWidget(controller, action)) {
-          binder.updateView(scope);
+          updateView(scope);
         }
       }
       return bubbleEvent;
@@ -3324,23 +3311,17 @@ WidgetFactory.prototype = {
     var view = FileController.template(uploadId);
     fileInput.after(view);
     var att = {
-        data:this.serverUrl + "/admin/ServerAPI.swf",
-        width:"95", height:"20", align:"top",
-        wmode:"transparent"};
+        'data':this.serverUrl + "/admin/ServerAPI.swf",
+        'width':"95", 'height':"20", 'align':"top",
+        'wmode':"transparent"};
     var par = {
-        flashvars:"uploadWidgetId=" + uploadId,
-        allowScriptAccess:"always"};
+        'flashvars':"uploadWidgetId=" + uploadId,
+        'allowScriptAccess':"always"};
     var swfNode = this.createSWF(att, par, uploadId);
     fileInput.remove();
     var cntl = new FileController(view, fileInput[0].name, swfNode, this.serverUrl + "/data/" + this.database);
     jQuery(swfNode).data('controller', cntl);
     return cntl;
-  },
-  
-  createTextWidget: function(textInput) {
-    var controller = new TextController(textInput);
-    controller.onChange(this.onChangeListener);
-    return controller;
   }
 };
 /////////////////////
@@ -3356,10 +3337,12 @@ function FileController(view, scopeName, uploader, databaseUrl) {
   this.lastValue = undefined;
 };
 
-FileController.dispatchEvent = function(id, event, args) {
+angularCallbacks['flashEvent'] = function(id, event, args) {
   var object = document.getElementById(id);
-  var controller = jQuery(object).data("controller");
-  FileController.prototype['_on_' + event].apply(controller, args);
+  var jobject = jQuery(object);
+  var controller = jobject.data("controller");
+  FileController.prototype[event].apply(controller, args);
+  _.defer(jobject.scope().get('$updateView'));
 };
 
 FileController.template = function(id) {
@@ -3368,26 +3351,26 @@ FileController.template = function(id) {
       '<object id="' + id + '" />' +
       '<a></a>' +
       '<span/>' +
-    '</span>');
+    '</span>'); 
 };
 
-FileController.prototype = {
-  '_on_cancel': noop,
-  '_on_complete': noop,
-  '_on_httpStatus': function(status) {
+extend(FileController.prototype, {
+  'cancel': noop,
+  'complete': noop,
+  'httpStatus': function(status) {
     alert("httpStatus:" + this.scopeName + " status:" + status);
   },
-  '_on_ioError': function() {
+  'ioError': function() {
     alert("ioError:" + this.scopeName);
   },
-  '_on_open': function() {
+  'open': function() {
     alert("open:" + this.scopeName);
   },
-  '_on_progress':noop,
-  '_on_securityError':  function() {
+  'progress':noop,
+  'securityError':  function() {
     alert("securityError:" + this.scopeName);
   },
-  '_on_uploadCompleteData': function(data) {
+  'uploadCompleteData': function(data) {
     var value = fromJson(data);
     value.url = this.attachmentsPath + '/' + value.id + '/' + value.text;
     this.view.find("input").attr('checked', true);
@@ -3395,9 +3378,8 @@ FileController.prototype = {
     this.value = value;
     this.updateModel(scope);
     this.value = null;
-    scope.get('$binder').updateView();
   },  
-  '_on_select': function(name, size, type) {
+  'select': function(name, size, type) {
     this.name = name;
     this.view.find("a").text(name).attr('href', name);
     this.view.find("span").text(angular['filter']['bytes'](size));
@@ -3429,10 +3411,10 @@ FileController.prototype = {
   
   upload: function() {
     if (this.name) {
-      this.uploader.uploadFile(this.attachmentsPath);
+      this.uploader['uploadFile'](this.attachmentsPath);
     }
   }
-};
+});
 
 ///////////////////////
 // NullController
@@ -3453,14 +3435,15 @@ var ButtonController = NullController;
 ///////////////////////
 // TextController
 ///////////////////////
-function TextController(view, exp) {
+function TextController(view, exp, formatter) {
   this.view = view;
+  this.formatter = formatter;
   this.exp = exp;
   this.validator = view.getAttribute('ng-validate');
   this.required = typeof view.attributes['ng-required'] != "undefined";
   this.lastErrorText = null;
   this.lastValue = undefined;
-  this.initialValue = view.value;
+  this.initialValue = this.formatter['parse'](view.value);
   var widget = view.getAttribute('ng-widget');
   if (widget === 'datepicker') {
     jQuery(view).datepicker();
@@ -3469,7 +3452,7 @@ function TextController(view, exp) {
 
 TextController.prototype = {
   updateModel: function(scope) {
-    var value = this.view.value;
+    var value = this.formatter['parse'](this.view.value);
     if (this.lastValue === value) {
       return false;
     } else {
@@ -3487,14 +3470,15 @@ TextController.prototype = {
       scope.setEval(this.exp, value);
     }
     value = value ? value : '';
-    if (this.lastValue != value) {
-      view.value = value;
+    if (!_(this.lastValue).isEqual(value)) {
+      view.value = this.formatter['format'](value);
       this.lastValue = value;
     }
+    
     var isValidationError = false;
     view.removeAttribute('ng-error');
     if (this.required) {
-      isValidationError = !(value && value.length > 0);
+      isValidationError = !(value && $.trim("" + value).length > 0);
     }
     var errorText = isValidationError ? "Required Value" : null;
     if (!isValidationError && this.validator && value) {
@@ -3503,7 +3487,7 @@ TextController.prototype = {
     }
     if (this.lastErrorText !== errorText) {
       this.lastErrorText = isValidationError;
-      if (errorText !== null) {
+      if (errorText !== null && isVisible(view)) {
         view.setAttribute('ng-error', errorText);
         scope.markInvalid(this);
       }
@@ -3515,21 +3499,24 @@ TextController.prototype = {
 ///////////////////////
 // CheckboxController
 ///////////////////////
-function CheckboxController(view, exp) {
+function CheckboxController(view, exp, formatter) {
   this.view = view;
   this.exp = exp;
   this.lastValue = undefined;
-  this.initialValue = view.checked ? view.value : "";
+  this.formatter = formatter;
+  this.initialValue = this.formatter['parse'](view.checked ? view.value : "");
 };
 
 CheckboxController.prototype = {
-    updateModel: function(scope) {
+  updateModel: function(scope) {
     var input = this.view;
     var value = input.checked ? input.value : '';
+    value = this.formatter['parse'](value);
+    value = this.formatter['format'](value);
     if (this.lastValue === value) {
       return false;
     } else {
-      scope.setEval(this.exp, value);
+      scope.setEval(this.exp, this.formatter['parse'](value));
       this.lastValue = value;
       return true;
     }
@@ -3542,7 +3529,7 @@ CheckboxController.prototype = {
       value = this.initialValue;
       scope.setEval(this.exp, value);
     }
-    input.checked = input.value == (''+value);
+    input.checked = this.formatter['parse'](input.value) == value;
   }
 };
 
@@ -3800,7 +3787,7 @@ BindAttrUpdater.prototype = {
       }
       var attrValue = attrValues.length ? attrValues.join('') : null;
       if(isImage && attrName == 'src' && !attrValue)
-        attrValue = scope.get('config.server') + '/images/blank.gif';
+        attrValue = scope.get('$config.blankImage');
       jNode.attr(attrName, attrValue);
     } 
   }
@@ -4040,8 +4027,8 @@ PopUp.prototype = {
 
 
 function Status(body) {
-  this.loader = body.append(Status.DOM).find("#ng-loading");
   this.requestCount = 0;
+  this.body = body;
 };
 
 Status.DOM ='<div id="ng-spacer"></div><div id="ng-loading">loading....</div>';
@@ -4049,7 +4036,7 @@ Status.DOM ='<div id="ng-spacer"></div><div id="ng-loading">loading....</div>';
 Status.prototype = {
   beginRequest: function () {
     if (this.requestCount === 0) {
-      this.loader.show();
+      (this.loader = this.loader || this.body.append(Status.DOM).find("#ng-loading")).show();
     }
     this.requestCount++;
   },
