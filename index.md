@@ -5,11 +5,11 @@ open: '{{'
 close: '}}'
 ---
 
-# &lt;angular.js/&gt;
+# <tt>&lt;angular.js/&gt;</tt>
 
 > Web apps made simple.
 
-## What is &lt;angular.js/&gt;?
+## What is <tt>&lt;angular.js/&gt;</tt>?
 
 The <tt>&lt;angular.js/&gt;</tt> library teaches your old browser new tricks. It is what HTML would have been, 
 if it was designed for building web applications.
