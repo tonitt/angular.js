@@ -1,5 +1,5 @@
 body {
-  background-color: #DDD;
+  background-color: #999;
 }
 
 #page {
@@ -16,6 +16,8 @@ body {
 #sidebar {
   width: 180px;
   float: right;
+  background-color: #E0E0E0;
+  border: 2px solid black;
 }
 
 #sidebar ul {
@@ -28,4 +30,24 @@ body {
 
 .angular pre {
   overflow-x: scroll;
+}
+
+h1 {
+  text-align: right;
+  font-size: 35px;
+  background-color: #3366aa;
+  color: #F5B800;
+  padding: 20px;
+  margin-top: 0;
+  border-bottom: 3px solid #F5B800; 
+}
+
+blockquote p{
+  text-align: center;
+  font-style: italic;
+  font-size: 1.5em;
+}
+
+h2 {
+  border-bottom: 2px solid gray; 
 }

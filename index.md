@@ -14,17 +14,18 @@ close: '}}'
 The <tt>&lt;angular.js/&gt;</tt> library teaches your old browser new tricks. It is what HTML would have been, 
 if it was designed for building web applications.
 
-Adding <tt>&lt;angular.js/&gt;</tt> to any static web page extends the HTML vocabulary to understand:
+Add <tt>&lt;angular.js/&gt;</tt> to any static web page and extend the HTML vocabulary of your browser to 
+understand:
 * [ng-attributes] such as <tt>&lt;div ng-repeat="item in items"/&gt;</tt> which control the rendering process.
 * Inline {{page.open}}[mustache]{{page.close}} which binds expression in spreadsheet-like auto-update manner.
-* [filters], [formaters], [validators], [widgets], [charts], and [more]
+* [filters], [formatters], [validators], [widgets], [charts], and [more]
 
 
 ## Demos
 ### Calculator
 
 In it's simplest form <tt>&lt;angular.js/&gt;</tt> is a client-side auto-evaluating templating system.
-Try changing the numbers, enter negative numbers, or non-number text, to see what happens. Then see 
+Try changing the numbers, enter negatives, or non-number text, to see what happens. Then see 
 what the page looks like without <tt>&lt;angular.js/&gt;</tt> and view the source behind it, by clicking
 on the appropriate tab.
 
@@ -43,7 +44,7 @@ written to achieve this interactive UI, and there is no server in the background
 ### Programmatic Control & Model - View - Controller
 
 Here we show you how seamless it is to bridge <tt>&lt;angular.js/&gt;</tt> (which acts as view) and 
-JavaScript (which acts as controller). On init we copy the controller methods into 
+JavaScript (which acts as controller). On <tt>init</tt> we copy the controller methods into 
 <tt>&lt;angular.js/&gt;</tt> scope, which makes them freely available to be called from the view. 
 When the method is invoked it has easy access to the model through "this".
 
@@ -91,9 +92,26 @@ command.
 
 ### Database
 
-Cross-site AJAX to a RESTful JSON store.
+What good is easy way of building UI, without persistence? therefore <tt>&lt;angular.js/&gt;</tt>
+also includes a service ([http://www.getangular.com](http://www.getangular.com)) where you can 
+host your data for free. It is a cross-site RESTful JSON store and authentication service. 
+Here's an [task application](/database.html) as a demo and a video explaining how it was built.
 
-Here's an [example](/database.html) connecting to http://www.getangular.com
+<div id="demo">
+</div>
+<script type='text/javascript'>
+swfobject.embedSWF(
+  "http://www.getangular.com/video/Tasks.swf", "demo", 
+  "640", "511", "9.0.0","expressInstall.swf", {}, {
+    quality: "high",
+    name: "Captivate",
+    id: "Captivate",
+    wmode: "window",
+    bgcolor: "#F1F4F5",
+    menu: "false"
+  }, {});
+</script>
+
 
 ## Slides
 
@@ -102,6 +120,7 @@ Here's an [example](/database.html) connecting to http://www.getangular.com
 [ng-attributes]: http://docs.getangular.com/Main_Page#Attribute_Reference
 [ng-repeat]: http://docs.getangular.com/Ng-repeat
 [mustache]: http://docs.getangular.com/Ng-bind
+[formatters]: http://docs.getangular.com/Formatters
 [filters]: http://docs.getangular.com/Filter
 [validators]: http://docs.getangular.com/Validator
 [widgets]: http://docs.getangular.com/Widget
