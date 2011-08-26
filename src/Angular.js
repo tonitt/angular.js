@@ -516,7 +516,7 @@ function map(obj, iterator, context) {
  *
  * @param {Object|Array|string} obj Object, array, or string to inspect.
  * @param {boolean} [ownPropsOnly=false] Count only "own" properties in an object
- * @returns {number} The size of `obj` or `0` if `obj` is neither an object or an array.
+ * @returns {number} The size of `obj` or `0` if `obj` is neither an object nor an array.
  *
  * @example
  * <doc:example>
