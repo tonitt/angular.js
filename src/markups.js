@@ -277,14 +277,14 @@ angularTextMarkup('option', function(text, textNode, parentElement){
 
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:checked
  *
  * @description
- * The HTML specs do not require browsers to preserve the special attributes such as checked.
+ * The HTML specifications do not require browsers to preserve special attributes, such as 
+ * the default value "checked"" for input elements.
  * (The presence of them means true and absence means false)
- * This prevents the angular compiler from correctly retrieving the binding expression.
+ * This prevents the Angular compiler from correctly retrieving the binding expression.
  * To solve this problem, we introduce ng:checked.
  * @example
     <doc:example>

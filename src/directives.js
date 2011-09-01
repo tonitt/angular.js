@@ -314,23 +314,23 @@ function compileBindTemplate(template){
 }
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:bind-template
  *
  * @description
  * The `ng:bind-template` attribute specifies that the element
- * text should be replaced with the template in ng:bind-template.
- * Unlike ng:bind the ng:bind-template can contain multiple `{{` `}}`
- * expressions. (This is required since some HTML elements
- * can not have SPAN elements such as TITLE, or OPTION to name a few.)
+ * text should be replaced with the template specified in `ng:bind-template`.
+ * Unlike `ng:bind`, the `ng:bind-template` can contain multiple `{{` `}}`
+ * expressions. (This is required since some HTML elements, 
+ * such as TITLE or OPTION, cannot have SPAN elements.)
  *
  * @element ANY
  * @param {string} template of form
- *   <tt>{{</tt> <tt>expression</tt> <tt>}}</tt> to eval.
+ *   <tt>{{</tt> <tt>expression</tt> <tt>}}</tt> to evaluate
  *
  * @example
- * Try it here: enter text in text box and watch the greeting change.
+ * Enter a salutation and a name in their respective Live Preview text boxes 
+ * and watch the greeting below change instantly.
    <doc:example>
      <doc:source>
       Salutation: <input type="text" name="salutation" value="Hello"><br/>
@@ -372,34 +372,33 @@ var REMOVE_ATTRIBUTES = {
   'multiple':'multiple'
 };
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:bind-attr
  *
  * @description
  * The `ng:bind-attr` attribute specifies that
- * {@link guide/dev_guide.templates.databinding databindings}  should be created between element
- * attributes and given expressions. Unlike `ng:bind` the `ng:bind-attr` contains a JSON key value
- * pairs representing which attributes need to be mapped to which
+ * {@link guide/dev_guide.templates.databinding databindings} should be created between element
+ * attributes and given expressions. Unlike `ng:bind`, the `ng:bind-attr` contains one or more
+ * JSON key-value pairs that represent which attributes need to be mapped to which
  * {@link guide/dev_guide.expressions expressions}.
  *
- * You don't usually write the `ng:bind-attr` in the HTML since embedding
- * <tt ng:non-bindable>{{expression}}</tt> into the attribute directly as the attribute value is
- * preferred. The attributes get translated into `<span ng:bind-attr="{attr:expression}"/>` at
- * compile time.
+ * It is not generally necessary to use `ng:bind-attr` directly. The recommended way is to 
+ * create attribute bindings with double curly attribute markup, which then gets translated to an 
+ * `ng:bind-attr` directive when the template is compiled.
  *
- * This HTML snippet is preferred way of working with `ng:bind-attr`
+ * The following code snippet shows an example of how to use attribute markup to databind an element
+ * attribute:
  * <pre>
  *   <a href="http://www.google.com/search?q={{query}}">Google</a>
  * </pre>
  *
- * The above gets translated to bellow during bootstrap time.
+ * This attribute markup gets translated to the following `ng:bind-attr` form at compile time:
  * <pre>
  *   <a ng:bind-attr='{"href":"http://www.google.com/search?q={{query}}"}'>Google</a>
  * </pre>
  *
  * @element ANY
- * @param {string} attribute_json a JSON key-value pairs representing
+ * @param {string} attribute_json a JSON key-value pair that represents
  *    the attributes to replace. Each key matches the attribute
  *    which needs to be replaced. Each value is a text template of
  *    the attribute with embedded
@@ -407,11 +406,11 @@ var REMOVE_ATTRIBUTES = {
  *    key-value pairs can be specified.
  *
  * @example
- * Try it here: enter text in text box and click Google.
+ * Enter a search term in the Live Preview text box and then click Google to watch the search execute.
    <doc:example>
      <doc:source>
       Google for:
-      <input type="text" name="query" value="AngularJS"/>
+      <input type="text" name="query" value="AngularJS">
       <a href="http://www.google.com/search?q={{query}}">Google</a>
      </doc:source>
      <doc:scenario>
@@ -566,18 +565,18 @@ function ngClass(selector) {
 }
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:class
  *
  * @description
- * The `ng:class` allows you to set CSS class on HTML element
+ * The `ng:class` allows you to set a CSS class on an HTML element
  * conditionally.
  *
  * @element ANY
  * @param {expression} expression {@link guide/dev_guide.expressions Expression} to eval.
  *
  * @example
+ * The following example presents two buttons. Clicking on either one sets the value of the SPAN class, "myVar". 
    <doc:example>
      <doc:source>
       <input type="button" value="set" ng:click="myVar='ng-input-indicator-wait'">
@@ -606,14 +605,14 @@ function ngClass(selector) {
 angularDirective("ng:class", ngClass(function(){return true;}));
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:class-odd
  *
  * @description
- * The `ng:class-odd` and `ng:class-even` works exactly as
- * `ng:class`, except it works in conjunction with `ng:repeat`
- * and takes affect only on odd (even) rows.
+ * The `ng:class-odd` and `ng:class-even` directives work similarly to
+ * `ng:class`, but they are used in conjunction with `ng:repeat`, and typically together,
+ * to affect the odd and even rows of a list. 
+ * `ng:class-odd` directive affects only odd rows; ng:class-even` affects only even rows.
  *
  * @element ANY
  * @param {expression} expression {@link guide/dev_guide.expressions Expression} to eval. Must be
@@ -644,14 +643,14 @@ angularDirective("ng:class", ngClass(function(){return true;}));
 angularDirective("ng:class-odd", ngClass(function(i){return i % 2 === 0;}));
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:class-even
  *
  * @description
- * The `ng:class-odd` and `ng:class-even` works exactly as
- * `ng:class`, except it works in conjunction with `ng:repeat`
- * and takes affect only on odd (even) rows.
+ * The `ng:class-even` and `ng:class-odd` directives work similarly to
+ * `ng:class`, but they are used in conjunction with `ng:repeat`, and typically together,
+ * to affect the even and odd rows of a list. 
+ * `ng:class-even` affects only even rows; ng:class-odd` affects only odd rows.
  *
  * @element ANY
  * @param {expression} expression {@link guide/dev_guide.expressions Expression} to eval. Must be

@@ -484,18 +484,18 @@ function radioInit(model, view, element) {
 }
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:change
  *
  * @description
- * The directive executes an expression whenever the input widget changes.
+ * The `ng:change` directive executes an expression whenever the input widget changes.
  *
  * @element INPUT
  * @param {expression} expression to execute.
  *
  * @example
- * @example
+ * The following example demonstrates 2 counters. Each counter will add 1 to its value whenever 
+ * a change is made to the input widget associated with it.
     <doc:example>
       <doc:source>
         <div ng:init="checkboxCount=0; textCount=0"></div>
