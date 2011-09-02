@@ -279,20 +279,46 @@ angularTextMarkup('option', function(text, textNode, parentElement){
 
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:checked
  *
  * @description
- * The HTML specs do not require browsers to preserve the special attributes such as checked.
- * (The presence of them means true and absence means false)
- * This prevents the angular compiler from correctly retrieving the binding expression.
- * To solve this problem, we introduce ng:checked.
+ * Angular's `ng:checked` directive allows you to create an attribute binding for the `checked` 
+ * attribute of the HTML `<input>` element. If you need to work with the
+ * `checked` attribute, you must use `ng:checked` to create a binding for it.
+ * 
+ * Ordinarily, Angular does not use the `checked` attribute for bindings because the the HTML   
+ * specification does not require browsers to preserve the values for special attributes 
+ * like `checked`. Since any browser is free to throw away special attribute values when parsing an
+ * HTML file and constructing the DOM tree, the Angular compiler does not use those attibutes to retrieve  
+ * binding expressions and create bindings.
+ *
+ * So, instead of:
+ * <pre>
+ *   <input type="checkebox" checked="{{expression}}">
+ * </pre>
+ *
+ * use the following:
+ * <pre>
+ *   <input type="checkebox" ng:checked="{{expression}}">
+ * </pre>
+ *
+ * Note: The `ng:checked` directive creates a one-way data-binding. If you need to create a
+ * two-way data-binding, use Angular's built-in {@link angular.widget.HTML input widget}:
+ * <pre>
+ *  <input name="modelName" type="checkbox">
+ * </pre>
+ *
  * @example
     <doc:example>
       <doc:source>
-        Check me to check both: <input type="checkbox" name="master"><br/>
-        <input id="checkSlave" type="checkbox" ng:checked="{{master}}">
+        <select name="checkedModel">
+          <option value="checked">check</option>
+          <option value="">uncheck</option>
+        </select>
+        <tt>checkedModel</tt>: {{checkedModelq}} <br/>
+        Data-bound checkbox: <input id="checkSlave" type="checkbox" ng:checked="{{checkedModel}}"> <br/>
+        Data-bound checkbox: <input id="checkSlave" type="checkbox" ng:bind-attr="{checked:'{{checkedModel}}'}">
       </doc:source>
       <doc:scenario>
         it('should check both checkBoxes', function() {
@@ -314,10 +340,15 @@ angularTextMarkup('option', function(text, textNode, parentElement){
  * @name angular.directive.ng:multiple
  *
  * @description
- * The HTML specs do not require browsers to preserve the special attributes such as multiple.
- * (The presence of them means true and absence means false)
- * This prevents the angular compiler from correctly retrieving the binding expression.
- * To solve this problem, we introduce ng:multiple.
+ * Angular's `ng:multiple` directive allows you to create an attribute binding for the `multiple` 
+ * attribute of the HTML `<input>` element. If you need to work with the
+ * `multiple` attribute, you must use `ng:multiple` to create a binding for it.
+ *
+ * Ordinarily, Angular does not use the `multiple` attribute for bindings because the HTML specification   
+ * does not require browsers to preserve the values for special attributes like `multiple`. 
+ * Since any browser is free to throw away special attribute values when parsing an
+ * HTML file and constructing the DOM tree, the Angular compiler does not   
+ * use those attibutes to retrieve binding expressions and create bindings.
  *
  * @example
      <doc:example>

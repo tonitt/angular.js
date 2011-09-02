@@ -82,28 +82,21 @@ angularDirective("ng:init", function(expression){
  * @name angular.directive.ng:controller
  *
  * @description
- * The `ng:controller` directive assigns behavior to a scope. This is a key aspect of how angular
- * supports the principles behind the Model-View-Controller design pattern.
+ * The `ng:controller` directive creates a new Angular {@link guide/dev_guide.scopes Scope} that is
+ * associated with a controller function specified by the value of the directive.
  *
- * MVC components in angular:
- *
- * * Model — The Model is data in scope properties; scopes are attached to the DOM.
- * * View — The template (HTML with data bindings) is rendered into the View.
- * * Controller — The `ng:controller` directive specifies a Controller class; the class has
- *   methods that typically express the business logic behind the application.
- *
- * Note that an alternative way to define controllers is via the `{@link angular.service.$route}`
- * service.
+ * Note that an alternative way to define controllers is via the
+ * {@link angular.service.$route $route} service.
  *
  * @element ANY
  * @param {expression} expression Name of a globally accessible constructor function or an
- *     {@link guide/dev_guide.expressions expression} that on the current scope evaluates to a
+ *     {@link guide/dev_guide.expressions expression} on the current scope that evaluates to a
  *     constructor function.
  *
  * @example
- * Here is a simple form for editing user contact information. Adding, removing, clearing, and
- * greeting are methods declared on the controller (see source tab). These methods can
- * easily be called from the angular markup. Notice that the scope becomes the `this` for the
+ * Following is a simple form for editing user contact information. On the controller in this
+ * example, we declared the add, remove, clear, and greet methods. Once declared, these methods can
+ * be called easily from the Angular markup. Notice that the scope becomes the `this` for the
  * controller's instance. This allows for easy access to the view data from the controller. Also
  * notice that any changes to the data are automatically reflected in the View without the need
  * for a manual update.
@@ -455,13 +448,12 @@ angularDirective("ng:bind-attr", function(expression){
 
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:click
  *
  * @description
- * The ng:click allows you to specify custom behavior when
- * element is clicked.
+ * The ng:click directive allows you to specify custom behavior when
+ * an element is clicked.
  *
  * @element ANY
  * @param {expression} expression {@link guide/dev_guide.expressions Expression} to evaluate upon
@@ -579,6 +571,7 @@ function ngClass(selector) {
  *   of the evaluation can be a string representing space delimited class names or an array.
  *
  * @example
+ * Click the Set button in the Live Preview text box and watch the style of the text change instantly.
    <doc:example>
      <doc:source>
       <input type="button" value="set" ng:click="myVar='ng-input-indicator-wait'">
@@ -607,21 +600,18 @@ function ngClass(selector) {
 angularDirective("ng:class", ngClass(function(){return true;}));
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:class-odd
  *
  * @description
- * The `ng:class-odd` and `ng:class-even` works exactly as
- * {@link angular.directive.ng:class ng:class}, except it works in conjunction with `ng:repeat` and
- * takes affect only on odd (even) rows.
- *
- * This directive can be applied only within a scope of an
- * {@link angular.widget.@ng:repeat ng:repeat}.
+ * The `ng:class-odd` and `ng:class-even` directives work similarly to
+ * `ng:class`. The `ng:class-odd` directive affects only odd rows; `ng:class-even` affects only even rows.
+ * These directives can be used separately or togther, but they can be applied only within a scope 
+ * of an {@link angular.widget.@ng:repeat ng:repeat}.
  *
  * @element ANY
- * @param {expression} expression {@link guide/dev_guide.expressions Expression} to eval. The result
- *   of the evaluation can be a string representing space delimited class names or an array.
+ * @param {expression} expression {@link guide/dev_guide.expressions Expression} to evaluate. The result
+ *   of the evaluation can be a string representing space-delimited class names or an array.
  *
  * @example
    <doc:example>
@@ -648,21 +638,18 @@ angularDirective("ng:class", ngClass(function(){return true;}));
 angularDirective("ng:class-odd", ngClass(function(i){return i % 2 === 0;}));
 
 /**
- * @workInProgress
  * @ngdoc directive
  * @name angular.directive.ng:class-even
  *
  * @description
- * The `ng:class-odd` and `ng:class-even` works exactly as
- * {@link angular.directive.ng:class ng:class}, except it works in conjunction with `ng:repeat` and
- * takes affect only on odd (even) rows.
- *
- * This directive can be applied only within a scope of an
- * {@link angular.widget.@ng:repeat ng:repeat}.
- *
+ * The `ng:class-odd` and `ng:class-even` directives work similarly to
+ * `ng:class`. The `ng:class-odd` directive affects only odd rows; `ng:class-even` affects only even rows.
+ * These directives can be used separately or togther, but they can be applied only within a scope 
+ * of an {@link angular.widget.@ng:repeat ng:repeat}.
+ * 
  * @element ANY
  * @param {expression} expression {@link guide/dev_guide.expressions Expression} to eval. The result
- *   of the evaluation can be a string representing space delimited class names or an array.
+ *   of the evaluation can be a string representing space-delimited class names or an array.
  *
  * @example
    <doc:example>
@@ -826,12 +813,12 @@ angularDirective("ng:style", function(expression, element){
  * @name angular.directive.ng:cloak
  *
  * @description
- * The `ng:cloak` directive is used to prevent the Angular html template from being briefly
- * displayed by the browser in its raw (uncompiled) form while your application is loading. Use this
- * directive to avoid the undesirable flicker effect caused by the html template display.
+ * The `ng:cloak` directive is used to prevent a browser from briefly displaying the Angular HTML template 
+ * in its raw (uncompiled) form while your application is loading. Use `ng:cloak` 
+ * to avoid the undesirable flicker effect caused by the HTML template display.
  *
- * The directive can be applied to the `<body>` element, but typically a fine-grained application is
- * prefered in order to benefit from progressive rendering of the browser view.
+ * The directive can be applied to the `<body>` element, but applying the directive more precisely
+ * allows your app to benefit from progressive rendering of the browser view.
  *
  * `ng:cloak` works in cooperation with a css rule that is embedded within `angular.js` and
  *  `angular.min.js` files. Following is the css rule:
@@ -842,13 +829,13 @@ angularDirective("ng:style", function(expression, element){
  * }
  * </pre>
  *
- * When this css rule is loaded by the browser, all html elements (including their children) that
+ * When this css rule is loaded by the browser, all HTML elements (including their children) that
  * are tagged with the `ng:cloak` directive are hidden. When Angular comes across this directive
- * during the compilation of the template it deletes the `ng:cloak` element attribute, which
+ * during the compilation of the template, it deletes the `ng:cloak` element attribute, which
  * makes the compiled element visible.
  *
- * For the best result, `angular.js` script must be loaded in the head section of the html file;
- * alternatively, the css rule (above) must be included in the external stylesheet of the
+ * For best results, `angular.js` script must be loaded in the head section of the HTML file.
+ * Alternatively, the css rule (above) must be included in the external stylesheet of the
  * application.
  *
  * Legacy browsers, like IE7, do not provide attribute selector support (added in CSS 2.1) so they
